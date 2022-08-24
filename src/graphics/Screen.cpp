@@ -1066,7 +1066,7 @@ int32_t Screen::runOnce()
         targetFramerate = IDLE_FRAMERATE;
 
 #ifdef ARCH_ESP32
-        setCPUFast(false); // Turn up the CPU to improve screen animations
+        // setCPUFast(false); // Turn up the CPU to improve screen animations
 #endif
 
         ui.setTargetFPS(targetFramerate);
@@ -1298,7 +1298,7 @@ void Screen::setFastFramerate()
     targetFramerate = SCREEN_TRANSITION_FRAMERATE;
 
 #ifdef ARCH_ESP32
-    setCPUFast(true); // Turn up the CPU to improve screen animations
+    // setCPUFast(true); // Turn up the CPU to improve screen animations
 #endif
 
     ui.setTargetFPS(targetFramerate);

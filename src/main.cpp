@@ -1,3 +1,6 @@
+#include <FastLED.h>
+
+FASTLED_USING_NAMESPACE
 #include "GPS.h"
 #include "MeshRadio.h"
 #include "MeshService.h"
@@ -57,6 +60,8 @@
 #endif
 #include "PowerFSMThread.h"
 
+#include <Adafruit_NeoPixel.h>
+
 using namespace concurrency;
 
 // We always create a screen object, but we only init it if we find the hardware
@@ -70,6 +75,18 @@ meshtastic::GPSStatus *gpsStatus = new meshtastic::GPSStatus();
 
 // Global Node status
 meshtastic::NodeStatus *nodeStatus = new meshtastic::NodeStatus();
+
+// Parameter 1 = number of pixels in strip
+// Parameter 2 = Arduino pin number (most are valid)
+// Parameter 3 = pixel type flags, add together as needed:
+//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
+//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
+//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
+//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
+#define PIN 4
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(120, PIN, NEO_RGB + NEO_KHZ800);
+
+
 
 /// The I2C address of our display (if found)
 uint8_t screen_found;
@@ -93,7 +110,7 @@ uint32_t serialSinceMsec;
 bool axp192_found;
 
 // Array map of sensor types (as array index) and i2c address as value we'll find in the i2c scan
-uint8_t nodeTelemetrySensorsMap[7] = { 0, 0, 0, 0, 0, 0, 0 };
+uint8_t nodeTelemetrySensorsMap[7] = {0, 0, 0, 0, 0, 0, 0};
 
 Router *router = NULL; // Users of router don't care what sort of subclass implements that API
 
@@ -117,13 +134,15 @@ const char *getDeviceName()
 
 static int32_t ledBlinker()
 {
-    static bool ledOn;
-    ledOn ^= 1;
+    return loop_gene();
+    // return 50;
+    // static bool ledOn;
+    // ledOn ^= 1;
 
-    setLed(ledOn);
+    // setLed(ledOn);
 
     // have a very sparse duty cycle of LED being on, unless charging, then blink 0.5Hz square wave rate to indicate that
-    return powerStatus->getIsCharging() ? 1000 : (ledOn ? 1 : 1000);
+    // return powerStatus->getIsCharging() ? 1000 : (ledOn ? 1 : 1000);
 }
 
 uint32_t timeLastPowered = 0;
@@ -148,9 +167,39 @@ __attribute__((weak, noinline)) bool loopCanSleep()
     return true;
 }
 
+#define NUM_LEDS      50
+#define LED_TYPE   WS2812
+#define COLOR_ORDER   GRB
+#define DATA_PIN        4
+//#define CLK_PIN       4
+#define VOLTS          5
+#define MAX_MA       300
+CRGB leds[NUM_LEDS];
+
+#define BRIGHTNESS          200
+#define FRAMES_PER_SECOND  120
+
+typedef void (*SimplePatternList[])();
+SimplePatternList gPatterns = { rainbow, rainbowWithGlitter, confetti, sinelon, juggle, bpm };
+
+uint8_t gCurrentPatternNumber = 0; // Index number of which pattern is current
+uint8_t gHue = 0; 
+
+// CRGBArray<NUM_LEDS> leds;
 void setup()
 {
     concurrency::hasBeenSetup = true;
+    // setCPUFast(false);
+    // clock_prescale_set(clock_div_1);
+
+    // strip.begin();
+    // strip.setBrightness(50);
+    // strip.show();
+
+    FastLED.setMaxPowerInVoltsAndMilliamps( VOLTS, MAX_MA);
+    FastLED.addLeds<LED_TYPE,DATA_PIN,COLOR_ORDER>(leds, NUM_LEDS)
+      .setCorrection(TypicalLEDStrip);
+    FastLED.setBrightness(BRIGHTNESS);
 
 #ifdef SEGGER_STDOUT_CH
     auto mode = false ? SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL : SEGGER_RTT_MODE_NO_BLOCK_TRIM;
@@ -442,7 +491,7 @@ void setup()
     powerFSMthread = new PowerFSMThread();
 
     // setBluetoothEnable(false); we now don't start bluetooth until we enter the proper state
-    setCPUFast(false); // 80MHz is fine for our slow peripherals
+    // setCPUFast(false); // 80MHz is fine for our slow peripherals
 }
 
 uint32_t rebootAtMsec;   // If not zero we will reboot at this time (used to reboot shortly after the update completes)
@@ -454,11 +503,14 @@ bool runASAP;
 
 void loop()
 {
+    // DEBUG_MSG("11\n");
     runASAP = false;
 
     // axpDebugOutput.loop();
 
     // heap_caps_check_integrity_all(true); // FIXME - disable this expensive check
+    // loop_gene();
+    // return;
 
 #ifdef ARCH_ESP32
     esp32Loop();
@@ -491,9 +543,228 @@ void loop()
                   mainController.nextThread->tillRun(millis())); */
 
     // We want to sleep as long as possible here - because it saves power
-    if (!runASAP && loopCanSleep()) {
-        // if(delayMsec > 100) DEBUG_MSG("sleeping %ld\n", delayMsec);
-        mainDelay.delay(delayMsec);
-    }
+    // if (!runASAP && loopCanSleep()) {
+    //     // if(delayMsec > 100) DEBUG_MSG("sleeping %ld\n", delayMsec);
+    //     mainDelay.delay(delayMsec);
+    // }
     // if (didWake) DEBUG_MSG("wake!\n");
+}
+
+int32_t loop_gene()
+{
+    // DEBUG_MSG("\n\nGENE GENE GENE\n\n");
+    // Some example procedures showing how to display to the pixels:
+    // colorWipe(strip.Color(255, 0, 0), 50); // Red
+    // DEBUG_MSG("\n\n1GENE GENE GENE\n\n");
+    // colorWipe(strip.Color(0, 255, 0), 50); // Green
+    // DEBUG_MSG("\n\n3GENE GENE GENE\n\n");
+    //   colorWipe(strip.Color(0, 0, 255), 50); // Blue
+    // //colorWipe(strip.Color(0, 0, 0, 255), 50); // White RGBW
+    //   // Send a theater pixel chase in...
+    //   theaterChase(strip.Color(127, 127, 127), 50); // White
+    //   theaterChase(strip.Color(127, 0, 0), 50); // Red
+    //   theaterChase(strip.Color(0, 0, 127), 50); // Blue
+    // theaterChaseRainbow(20);
+    // return 1000;
+    // rainbowCycle(50);
+    // return 1000;
+    
+    //   rainbowCycle(20);
+    //   theaterChaseRainbow(50);
+    return rainbow_gene(20); 
+    gPatterns[gCurrentPatternNumber]();
+
+    // send the 'leds' array out to the actual LED strip
+    FastLED.show();  
+    // insert a delay to keep the framerate modest
+    // FastLED.delay(1000/FRAMES_PER_SECOND); 
+
+    // do some periodic updates
+    EVERY_N_MILLISECONDS( 20 ) { gHue++; } // slowly cycle the "base color" through the rainbow
+    EVERY_N_SECONDS( 10 ) { nextPattern(); } 
+    
+    // return rainbow_gene(20);// change patterns periodically
+    return 20;
+}
+
+uint16_t counter = 0;
+float speed = 3.0;
+uint16_t j = 0;
+int32_t rainbow_gene(uint8_t wait)
+{
+    uint16_t i;
+    j=j+int(speed);
+    counter++;
+    if(counter == 55){ // 55 is fast 
+      // speed = 50;
+      counter=0;
+    }
+    speed = speed - (speed-3)/20; // 20 is fast
+    // DEBUG_MSG("j= %i\n", j);
+    // DEBUG_MSG("getCpuFrequencyMhz()= %i\n", getCpuFrequencyMhz());
+    
+    if (j >= 255) {
+        j = 0;
+    }
+    // if(frame == 255) frame = 0;
+    // for(j=0; j<256; j++) {
+    for (i = 0; i < strip.numPixels(); i++) {
+        // strip.setPixelColor(i, Wheel((i + j) & 255));
+        strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+    }
+    strip.show();
+    // delay(1000);
+    // }
+    return 20;
+}
+// Fill the dots one after the other with a color
+void colorWipe(uint32_t c, uint8_t wait)
+{
+    for (uint16_t i = 0; i < strip.numPixels(); i++) {
+        strip.setPixelColor(i, c);
+        strip.show();
+        delay(wait);
+    }
+}
+
+// Slightly different, this makes the rainbow equally distributed throughout
+void rainbowCycle(uint8_t wait)
+{
+    uint16_t i, j;
+
+    for (j = 0; j < 256 * 5; j++) { // 5 cycles of all colors on wheel
+        for (i = 0; i < strip.numPixels(); i++) {
+            strip.setPixelColor(i, Wheel(((i * 256 / strip.numPixels()) + j) & 255));
+        }
+        strip.show();
+        delay(wait);
+    }
+}
+
+// Theatre-style crawling lights.
+void theaterChase(uint32_t c, uint8_t wait)
+{
+    for (int j = 0; j < 10; j++) { // do 10 cycles of chasing
+        for (int q = 0; q < 3; q++) {
+            for (uint16_t i = 0; i < strip.numPixels(); i = i + 3) {
+                strip.setPixelColor(i + q, c); // turn every third pixel on
+            }
+            strip.show();
+
+            delay(wait);
+
+            for (uint16_t i = 0; i < strip.numPixels(); i = i + 3) {
+                strip.setPixelColor(i + q, 0); // turn every third pixel off
+            }
+        }
+    }
+}
+
+// Theatre-style crawling lights with rainbow effect
+void theaterChaseRainbow(uint8_t wait)
+{
+    for (int j = 0; j < 256; j++) { // cycle all 256 colors in the wheel
+        for (int q = 0; q < 3; q++) {
+            for (uint16_t i = 0; i < strip.numPixels(); i = i + 3) {
+                strip.setPixelColor(i + q, Wheel((i + j) % 255)); // turn every third pixel on
+            }
+            strip.show();
+
+            delay(wait);
+
+            for (uint16_t i = 0; i < strip.numPixels(); i = i + 3) {
+                strip.setPixelColor(i + q, 0); // turn every third pixel off
+            }
+        }
+    }
+}
+
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(byte WheelPos)
+{
+    WheelPos = 255 - WheelPos;
+    if (WheelPos < 85) {
+        return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+    }
+    if (WheelPos < 170) {
+        WheelPos -= 85;
+        return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+    }
+    WheelPos -= 170;
+    return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+
+// List of patterns to cycle through.  Each is defined as a separate function below.
+  
+// void loop()
+// {
+//   // Call the current pattern function once, updating the 'leds' array
+
+// }
+
+#define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
+void nextPattern()
+{
+  // add one to the current pattern number, and wrap around at the end
+  gCurrentPatternNumber = (gCurrentPatternNumber + 1) % ARRAY_SIZE( gPatterns);
+}
+
+void rainbow() 
+{
+  // FastLED's built-in rainbow generator
+  fill_rainbow( leds, NUM_LEDS, gHue, 7);
+}
+
+void rainbowWithGlitter() 
+{
+  // built-in FastLED rainbow, plus some random sparkly glitter
+  rainbow();
+  addGlitter(80);
+}
+
+void addGlitter( int chanceOfGlitter) 
+{
+  if( random8() < chanceOfGlitter) {
+    leds[ random16(NUM_LEDS) ] += CRGB::White;
+  }
+}
+
+void confetti() 
+{
+  // random colored speckles that blink in and fade smoothly
+  fadeToBlackBy( leds, NUM_LEDS, 10);
+  int pos = random16(NUM_LEDS);
+  leds[pos] += CHSV( gHue + random8(64), 200, 255);
+}
+
+void sinelon()
+{
+  // a colored dot sweeping back and forth, with fading trails
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  int pos = beatsin16( 13, 0, NUM_LEDS-1 );
+  leds[pos] += CHSV( gHue, 255, 192);
+}
+
+void bpm()
+{
+  // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+  uint8_t BeatsPerMinute = 62;
+  CRGBPalette16 palette = PartyColors_p;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for( int i = 0; i < NUM_LEDS; i++) { //9948
+    leds[i] = ColorFromPalette(palette, gHue+(i*2), beat-gHue+(i*10));
+  }
+}
+
+void juggle() {
+  // eight colored dots, weaving in and out of sync with each other
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  uint8_t dothue = 0;
+  for( int i = 0; i < 8; i++) {
+    leds[beatsin16( i+7, 0, NUM_LEDS-1 )] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
 }

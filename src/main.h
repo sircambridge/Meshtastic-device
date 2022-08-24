@@ -44,3 +44,18 @@ extern uint32_t serialSinceMsec;
 extern bool runASAP;
 
 void nrf52Setup(), esp32Setup(), nrf52Loop(), esp32Loop(), clearBonds();
+
+int32_t loop_gene();
+void colorWipe(uint32_t c, uint8_t wait);
+int32_t rainbow_gene(uint8_t wait);
+void rainbowCycle(uint8_t wait), theaterChase(uint32_t c, uint8_t wait), theaterChaseRainbow(uint8_t wait);
+
+uint32_t Wheel(byte WheelPos);
+
+// void drawTwinkles( CRGBSet& L);
+// CRGB computeOneTwinkle( uint32_t ms, uint8_t salt);
+// uint8_t attackDecayWave8( uint8_t i);
+// void coolLikeIncandescent( CRGB& c, uint8_t phase);
+
+void rainbow() ,juggle(),bpm(),sinelon(),confetti(),rainbowWithGlitter(),nextPattern();
+void addGlitter( int32_t chanceOfGlitter);
