@@ -20,9 +20,9 @@ FASTLED_USING_NAMESPACE
 #include "SPILock.h"
 #include "concurrency/OSThread.h"
 #include "concurrency/Periodic.h"
-#include "debug/axpDebug.h"
-#include "debug/einkScan.h"
-#include "debug/i2cScan.h"
+#include "detect/axpDebug.h"
+#include "detect/einkScan.h"
+#include "detect/i2cScan.h"
 #include "graphics/Screen.h"
 #include "main.h"
 #include "modules/Modules.h"
@@ -36,13 +36,7 @@ FASTLED_USING_NAMESPACE
 
 #ifdef ARCH_ESP32
 #include "mesh/http/WebServer.h"
-
-#ifdef USE_NEW_ESP32_BLUETOOTH
-#include "esp32/ESP32Bluetooth.h"
-#else
-#include "nimble/BluetoothUtil.h"
-#endif
-
+#include "nimble/NimbleBluetooth.h"
 #endif
 
 #if HAS_WIFI
@@ -356,7 +350,7 @@ void setup()
     setupModules();
 
     // Do this after service.init (because that clears error_code)
-#ifdef AXP192_SLAVE_ADDRESS
+#ifdef HAS_AXP192
     if (!axp192_found)
         RECORD_CRITICALERROR(CriticalErrorCode_NoAXP192); // Record a hardware fault for missing hardware
 #endif

@@ -7,9 +7,7 @@
 #include "utils.h"
 #include "buzz/buzz.h"
 
-#ifdef TBEAM_V10
-// FIXME. nasty hack cleanup how we load axp192
-#undef AXP192_SLAVE_ADDRESS
+#ifdef HAS_AXP192
 #include "axp20x.h"
 
 AXP20X_Class axp;
@@ -158,8 +156,21 @@ class AnalogBatteryLevel : public HasBatteryLevel
     /// If we see a battery voltage higher than physics allows - assume charger is pumping
     /// in power
 
+#ifndef BAT_FULLVOLT
+#define BAT_FULLVOLT 4200
+#endif 
+#ifndef BAT_EMPTYVOLT
+#define BAT_EMPTYVOLT 3270
+#endif 
+#ifndef BAT_CHARGINGVOLT
+#define BAT_CHARGINGVOLT 4210
+#endif 
+#ifndef BAT_NOBATVOLT
+#define BAT_NOBATVOLT 2230
+#endif 
+
     /// For heltecs with no battery connected, the measured voltage is 2204, so raising to 2230 from 2100
-    const float fullVolt = 4200, emptyVolt = 3270, chargingVolt = 4210, noBatVolt = 2230;
+    const float fullVolt = BAT_FULLVOLT, emptyVolt = BAT_EMPTYVOLT, chargingVolt = BAT_CHARGINGVOLT, noBatVolt = BAT_NOBATVOLT;
     float last_read_value = 0.0;
     uint32_t last_read_time_ms = 0;
 };
@@ -221,7 +232,7 @@ bool Power::setup()
 
 void Power::shutdown()
 {
-#ifdef TBEAM_V10
+#ifdef HAS_AXP192
     DEBUG_MSG("Shutting down\n");
     axp.setChgLEDMode(AXP20X_LED_OFF);
     axp.shutdown();
@@ -293,7 +304,7 @@ int32_t Power::runOnce()
 {
     readPowerStatus();
 
-#ifdef TBEAM_V10
+#ifdef HAS_AXP192
     // WE no longer use the IRQ line to wake the CPU (due to false wakes from sleep), but we do poll
     // the IRQ status by reading the registers over I2C
     axp.readIRQ();
@@ -343,7 +354,7 @@ int32_t Power::runOnce()
  */
 bool Power::axp192Init()
 {
-#ifdef TBEAM_V10
+#ifdef HAS_AXP192
     if (axp192_found) {
         if (!axp.begin(Wire, AXP192_SLAVE_ADDRESS)) {
             batteryLevel = &axp;

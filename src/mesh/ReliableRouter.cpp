@@ -67,6 +67,12 @@ bool ReliableRouter::shouldFilterReceived(MeshPacket *p)
             sendAckNak(Routing_Error_NONE, getFrom(p), p->id, p->channel);
             DEBUG_MSG("acking a repeated want_ack packet\n");
         }
+    } else if (wasSeenRecently(p, false) && p->hop_limit == HOP_RELIABLE) {
+        // retransmission on broadcast has hop_limit still equal to HOP_RELIABLE
+        DEBUG_MSG("Resending implicit ack for a repeated floodmsg\n");
+        MeshPacket *tosend = packetPool.allocCopy(*p);
+        tosend->hop_limit--; // bump down the hop count
+        Router::send(tosend);
     }
 
     return FloodingRouter::shouldFilterReceived(p);
@@ -106,7 +112,7 @@ void ReliableRouter::sniffReceived(const MeshPacket *p, const Routing *c)
         // We intentionally don't check wasSeenRecently, because it is harmless to delete non existent retransmission records
         if (ackId || nakId) {
             if (ackId) {
-                DEBUG_MSG("Received a ack for 0x%x, stopping retransmissions\n", ackId);
+                DEBUG_MSG("Received an ack for 0x%x, stopping retransmissions\n", ackId);
                 stopRetransmission(p->to, ackId);
             } else {
                 DEBUG_MSG("Received a nak for 0x%x, stopping retransmissions\n", nakId);

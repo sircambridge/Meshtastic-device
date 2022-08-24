@@ -6,15 +6,15 @@
 #include "input/facesKbI2cImpl.h"
 #include "modules/AdminModule.h"
 #include "modules/CannedMessageModule.h"
-#include "modules/ExternalNotificationModule.h"
 #include "modules/NodeInfoModule.h"
 #include "modules/PositionModule.h"
 #include "modules/RemoteHardwareModule.h"
 #include "modules/ReplyModule.h"
 #include "modules/RoutingModule.h"
 #include "modules/TextMessageModule.h"
-#include "modules/Telemetry/DeviceTelemetry.h"
+#include "modules/WaypointModule.h"
 #if HAS_TELEMETRY
+#include "modules/Telemetry/DeviceTelemetry.h"
 #include "modules/Telemetry/EnvironmentTelemetry.h"
 #endif
 #ifdef ARCH_ESP32
@@ -22,7 +22,9 @@
 #include "modules/esp32/SerialModule.h"
 #include "modules/esp32/StoreForwardModule.h"
 #endif
-
+#if defined(ARCH_ESP32) || defined(ARCH_NRF52)
+#include "modules/ExternalNotificationModule.h"
+#endif
 /**
  * Create module instances here.  If you are adding a new module, you must 'new' it here (or somewhere else)
  */
@@ -34,6 +36,7 @@ void setupModules()
     adminModule = new AdminModule();
     nodeInfoModule = new NodeInfoModule();
     positionModule = new PositionModule();
+    waypointModule = new WaypointModule();
     textMessageModule = new TextMessageModule();
     
     // Note: if the rest of meshtastic doesn't need to explicitly use your module, you do not need to assign the instance
@@ -70,6 +73,8 @@ void setupModules()
     storeForwardModule = new StoreForwardModule();
 
     new RangeTestModule();
+#elif defined(ARCH_NRF52)
+new ExternalNotificationModule();
 #endif
 
     // NOTE! This module must be added LAST because it likes to check for replies from other modules and avoid sending extra acks

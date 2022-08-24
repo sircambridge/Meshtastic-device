@@ -43,14 +43,6 @@ ChannelFile channelFile;
  */
 uint32_t radioGeneration;
 
-/*
-DeviceState versions used to be defined in the .proto file but really only this function cares.  So changed to a
-#define here.
-*/
-
-#define DEVICESTATE_CUR_VER 13
-#define DEVICESTATE_MIN_VER DEVICESTATE_CUR_VER
-
 // FIXME - move this somewhere else
 extern void getMacAddr(uint8_t *dmac);
 
@@ -158,14 +150,18 @@ void NodeDB::installDefaultConfig()
     config.has_position = true;
     config.has_power = true;
     config.has_wifi = true;
+    config.has_bluetooth = true;
 
     config.lora.region = Config_LoRaConfig_RegionCode_Unset;
     config.lora.modem_preset = Config_LoRaConfig_ModemPreset_LongFast;
     resetRadioConfig();
     strncpy(config.device.ntp_server, "0.pool.ntp.org", 32);
+    // FIXME: Default to bluetooth capability of platform as default
+    config.bluetooth.enabled = true;
+    config.bluetooth.fixed_pin = defaultBLEPin;
+    config.bluetooth.mode = screen_found ? Config_BluetoothConfig_PairingMode_RandomPin : Config_BluetoothConfig_PairingMode_FixedPin;
     // for backward compat, default position flags are ALT+MSL
-    config.position.position_flags =
-        (Config_PositionConfig_PositionFlags_POS_ALTITUDE | Config_PositionConfig_PositionFlags_POS_ALT_MSL);
+    config.position.position_flags = (Config_PositionConfig_PositionFlags_POS_ALTITUDE | Config_PositionConfig_PositionFlags_POS_ALT_MSL);
 }
 
 void NodeDB::installDefaultModuleConfig()
@@ -305,7 +301,7 @@ bool loadProto(const char *filename, size_t protoSize, size_t objSize, const pb_
 #ifdef FSCom
     // static DeviceState scratch; We no longer read into a tempbuf because this structure is 15KB of valuable RAM
 
-    auto f = FSCom.open(filename);
+    auto f = FSCom.open(filename, FILE_O_READ);
 
     if (f) {
         DEBUG_MSG("Loading %s\n", filename);
@@ -460,6 +456,7 @@ void NodeDB::saveToDisk()
         config.has_position = true;
         config.has_power = true;
         config.has_wifi = true;
+        config.has_bluetooth = true;
         saveProto(configFileName, LocalConfig_size, sizeof(LocalConfig), LocalConfig_fields, &config);
 
         moduleConfig.has_canned_message = true;

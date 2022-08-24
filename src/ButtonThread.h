@@ -7,10 +7,6 @@
 #include "power.h"
 #include <OneButton.h>
 
-#ifdef ARCH_ESP32
-#include "nimble/BluetoothUtil.h"
-#endif
-
 namespace concurrency
 {
 /**
@@ -132,7 +128,7 @@ class ButtonThread : public concurrency::OSThread
 #endif
         // If user button is held down for 5 seconds, shutdown the device.
         if ((millis() - longPressTime > 5 * 1000) && (longPressTime > 0)) {
-#ifdef TBEAM_V10
+#ifdef HAS_AXP192
             if (axp192_found == true) {
                 setLed(false);
                 power->shutdown();
