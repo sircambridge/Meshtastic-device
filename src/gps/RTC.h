@@ -4,7 +4,8 @@
 #include "sys/time.h"
 #include <Arduino.h>
 
-enum RTCQuality {
+enum RTCQuality
+{
 
     /// We haven't had our RTC set yet
     RTCQualityNone = 0,
@@ -28,8 +29,12 @@ RTCQuality getRTCQuality();
 bool perhapsSetRTC(RTCQuality q, const struct timeval *tv);
 bool perhapsSetRTC(RTCQuality q, struct tm &t);
 
+bool perhapsSetRTC(RTCQuality q, const struct timeval *tv, int tm_csec);
+bool perhapsSetRTC(RTCQuality q, struct tm &t, int tm_csec);
+
 /// Return time since 1970 in secs.  While quality is RTCQualityNone we will be returning time based at zero
 uint32_t getTime();
+uint32_t getTime_ms();
 
 /// Return time since 1970 in secs.  If quality is RTCQualityNone return zero
 uint32_t getValidTime(RTCQuality minQuality);

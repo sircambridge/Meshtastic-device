@@ -1,4 +1,10 @@
 {
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "trunk.io"
+  "editor.defaultFormatter": "trunk.io",
+  "files.associations": {
+    "*.embeddedhtml": "html",
+    "*.rs": "rust",
+    "*.tpp": "cpp"
+  },
+  "idf.gitPathWin": "C:\\Users\\sirca\\.espressif\\tools\\idf-git\\2.30.1\\cmd\\git.exe"
 }

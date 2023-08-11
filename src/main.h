@@ -68,3 +68,25 @@ meshtastic_DeviceMetadata getDeviceMetadata();
 
 // FIXME, we default to 4MHz SPI, SPI mode 0, check if the datasheet says it can really do that
 extern SPISettings spiSettings;
+
+#define GENE_ENABLED 1
+
+#ifdef GENE_ENABLED
+int32_t get_current_pattern();
+int32_t loop_gene();
+void colorWipe(uint32_t c, uint8_t wait);
+int32_t rainbow_gene(uint8_t wait);
+void rainbowCycle(uint8_t wait), theaterChase(uint32_t c, uint8_t wait), theaterChaseRainbow(uint8_t wait);
+uint32_t Wheel(byte WheelPos);
+// void drawTwinkles( CRGBSet& L);
+// CRGB computeOneTwinkle( uint32_t ms, uint8_t salt);
+// uint8_t attackDecayWave8( uint8_t i);
+// void coolLikeIncandescent( CRGB& c, uint8_t phase);
+void rainbow(), juggle(), bpm(), sinelon(), confetti(), rainbowWithGlitter(), nextPattern();
+void addGlitter(int32_t chanceOfGlitter);
+int32_t gene_press();
+void gene_long_press();
+void Fire2012();
+double distanceBetween(int32_t my_lat_i, int32_t my_lon_i, int32_t this_lat_i, int32_t this_lon_i);
+// CRGB CoolColor( uint8_t temperature);
+#endif

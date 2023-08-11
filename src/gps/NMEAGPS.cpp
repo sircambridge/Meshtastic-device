@@ -59,6 +59,19 @@ bool NMEAGPS::setupGPS()
 
     return true;
 }
+struct tm_g
+{
+    int tm_csec;  /* centiseconds after the minute [0, 99] */
+    int tm_sec;   // seconds after the minute - [0, 60] including leap second
+    int tm_min;   // minutes after the hour - [0, 59]
+    int tm_hour;  // hours since midnight - [0, 23]
+    int tm_mday;  // day of the month - [1, 31]
+    int tm_mon;   // months since January - [0, 11]
+    int tm_year;  // years since 1900
+    int tm_wday;  // days since Sunday - [0, 6]
+    int tm_yday;  // days since January 1 - [0, 365]
+    int tm_isdst; // daylight savings time flag
+};
 
 /**
  * Perform any processing that should be done only while the GPS is awake and looking for a fix.
@@ -70,27 +83,36 @@ bool NMEAGPS::lookForTime()
 {
     auto ti = reader.time;
     auto d = reader.date;
-    if (ti.isValid() && d.isValid()) { // Note: we don't check for updated, because we'll only be called if needed
+    if (ti.isValid() && d.isValid())
+    { // Note: we don't check for updated, because we'll only be called if needed
         /* Convert to unix time
 The Unix epoch (or Unix time or POSIX time or Unix timestamp) is the number of seconds that have elapsed since January 1, 1970
 (midnight UTC/GMT), not counting leap seconds (in ISO 8601: 1970-01-01T00:00:00Z).
 */
         struct tm t;
         t.tm_sec = ti.second();
+        int tm_csec = ti.centisecond();
         t.tm_min = ti.minute();
         t.tm_hour = ti.hour();
         t.tm_mday = d.day();
         t.tm_mon = d.month() - 1;
         t.tm_year = d.year() - 1900;
         t.tm_isdst = false;
-        if (t.tm_mon > -1) {
+        if (t.tm_mon > -1)
+        {
             LOG_DEBUG("NMEA GPS time %02d-%02d-%02d %02d:%02d:%02d\n", d.year(), d.month(), t.tm_mday, t.tm_hour, t.tm_min,
                       t.tm_sec);
-            perhapsSetRTC(RTCQualityGPS, t);
+
+            LOG_DEBUG("NMEA GPS time %02d-%02d-%02d %02d:%02d:%02d  %d\n", d.year(), d.month(), t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, tm_csec);
+            LOG_DEBUG("ti.centisecond() %i\n", ti.centisecond());
+            perhapsSetRTC(RTCQualityGPS, t, tm_csec);
+            // perhapsSetRTC(RTCQualityGPS, t);
             return true;
-        } else
+        }
+        else
             return false;
-    } else
+    }
+    else
         return false;
 }
 
@@ -133,7 +155,8 @@ bool NMEAGPS::lookForLocation()
 #ifndef TINYGPS_OPTION_NO_CUSTOM_FIELDS
           (gsafixtype.age() < GPS_SOL_EXPIRY_MS) &&
 #endif
-          (reader.time.age() < GPS_SOL_EXPIRY_MS) && (reader.date.age() < GPS_SOL_EXPIRY_MS))) {
+          (reader.time.age() < GPS_SOL_EXPIRY_MS) && (reader.date.age() < GPS_SOL_EXPIRY_MS)))
+    {
         LOG_WARN("SOME data is TOO OLD: LOC %u, TIME %u, DATE %u\n", reader.location.age(), reader.time.age(), reader.date.age());
         return false;
     }
@@ -146,13 +169,15 @@ bool NMEAGPS::lookForLocation()
     auto loc = reader.location.value();
 
     // Bail out EARLY to avoid overwriting previous good data (like #857)
-    if (toDegInt(loc.lat) > 900000000) {
+    if (toDegInt(loc.lat) > 900000000)
+    {
 #ifdef GPS_EXTRAVERBOSE
         LOG_DEBUG("Bail out EARLY on LAT %i\n", toDegInt(loc.lat));
 #endif
         return false;
     }
-    if (toDegInt(loc.lng) > 1800000000) {
+    if (toDegInt(loc.lng) > 1800000000)
+    {
 #ifdef GPS_EXTRAVERBOSE
         LOG_DEBUG("Bail out EARLY on LNG %i\n", toDegInt(loc.lng));
 #endif
@@ -201,20 +226,26 @@ bool NMEAGPS::lookForLocation()
     p.timestamp = mktime(&t);
 
     // Nice to have, if available
-    if (reader.satellites.isUpdated()) {
+    if (reader.satellites.isUpdated())
+    {
         p.sats_in_view = reader.satellites.value();
     }
 
-    if (reader.course.isUpdated() && reader.course.isValid()) {
-        if (reader.course.value() < 36000) { // sanity check
+    if (reader.course.isUpdated() && reader.course.isValid())
+    {
+        if (reader.course.value() < 36000)
+        { // sanity check
             p.ground_track =
                 reader.course.value() * 1e3; // Scale the heading (in degrees * 10^-2) to match the expected degrees * 10^-5
-        } else {
+        }
+        else
+        {
             LOG_WARN("BOGUS course.value() REJECTED: %d\n", reader.course.value());
         }
     }
 
-    if (reader.speed.isUpdated() && reader.speed.isValid()) {
+    if (reader.speed.isUpdated() && reader.speed.isValid())
+    {
         p.ground_speed = reader.speed.kmph();
     }
 
@@ -224,7 +255,8 @@ bool NMEAGPS::lookForLocation()
 bool NMEAGPS::hasLock()
 {
     // Using GPGGA fix quality indicator
-    if (fixQual >= 1 && fixQual <= 5) {
+    if (fixQual >= 1 && fixQual <= 5)
+    {
 #ifndef TINYGPS_OPTION_NO_CUSTOM_FIELDS
         // Use GPGSA fix type 2D/3D (better) if available
         if (fixType == 3 || fixType == 0) // zero means "no data received"
@@ -245,7 +277,8 @@ bool NMEAGPS::whileIdle()
     bool isValid = false;
 
     // First consume any chars that have piled up at the receiver
-    while (_serial_gps->available() > 0) {
+    while (_serial_gps->available() > 0)
+    {
         int c = _serial_gps->read();
         // LOG_DEBUG("%c", c);
         isValid |= reader.encode(c);
