@@ -211,7 +211,7 @@ uint32_t getTime_ms()
 
 uint32_t getTime()
 {
-    return (((uint32_t)millis() - timeStartMsec) / 1000) + zeroOffsetSecs;
+    return ((((uint32_t)millis() - timeStartMsec) / 1000) + zeroOffsetSecs) * 1000;
 }
 
 uint32_t getValidTime(RTCQuality minQuality)

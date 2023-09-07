@@ -194,7 +194,7 @@ __attribute__((weak, noinline)) bool loopCanSleep()
 }
 
 #ifdef GENE_ENABLED
-#define NUM_LEDS 50
+#define NUM_LEDS 60
 #define LED_TYPE WS2812
 #define COLOR_ORDER GRB
 #define DATA_PIN 4
@@ -276,7 +276,7 @@ void setup()
     OSThread::setup();
 
     ledPeriodic = new Periodic("Blink", ledBlinker);
-    // gps_update_periodic = new Periodic("GPS", gene_press);
+    gps_update_periodic = new Periodic("GPS", gene_press);
 
     fsInit();
 
@@ -856,9 +856,9 @@ int32_t gene_press()
     // current_pattern++;
     // service.onGPSChanged(gpsStatus);
     LOG_DEBUG("GENE press!\n");
-    int32_t time_ms = getTime_ms();
+    int32_t time_ms = getTime();
     time_ms = abs(time_ms);
-    LOG_DEBUG("[GENE] getTime_ms = %i\n", time_ms);
+    LOG_DEBUG("[GENE] getTime = %i\n", time_ms);
     // nextPattern();
     LOG_DEBUG("numNodes = %d", nodeDB.getNumNodes());
     char coordinateLine[100];
@@ -868,7 +868,7 @@ int32_t gene_press()
     meshtastic_NodeInfo *node = nodeDB.getNodeByIndex(nodeIndex);
     const char *username = node->has_user ? node->user.long_name : "Unknown Name";
     LOG_DEBUG("[GENE]  %s\n", username);
-    LOG_DEBUG("[GENE]  getTime_ms() %i\n", getTime_ms());
+    LOG_DEBUG("[GENE]  getTime() %i\n", getTime());
     LOG_DEBUG("[GENE] mylat = %i lon = %i \n", int32_t(gpsStatus->getLatitude()), int32_t(gpsStatus->getLongitude()));
     the_intensity_const = 1;
     int within50_feet = 0;
@@ -897,6 +897,7 @@ int32_t gene_press()
     LOG_DEBUG("[GENE] within100_feet = %i\n", within100_feet);
     LOG_DEBUG("[GENE] within50_feet = %i\n", within50_feet);
     LOG_DEBUG("[GENE] the_intensity_const = %i\n", the_intensity_const);
+    the_intensity_const = 1;
     return 10 * 1000;
 }
 // double distanceBetween(double lat1, double long1, double lat2, double long2)
@@ -963,7 +964,7 @@ int32_t loop_gene()
     // return 1000;
     //   rainbowCycle(20);
     //   theaterChaseRainbow(50);
-    int32_t time_ms = getTime_ms();
+    int32_t time_ms = getTime();
     // LOG_DEBUG("[GENE] time_ms = %i\n", time_ms);
     // j = 255 * (-time_ms % 5000) / (5000);
     int total_patterns = 5;
@@ -974,13 +975,14 @@ int32_t loop_gene()
                                 (1000 * how_many_seconds_per_pattern * total_patterns);
         if (gCurrentPatternNumber != lastgCurrentPatternNumber)
         {
-            // LOG_DEBUG("[GENE] gCurrentPatternNumber = %i\n", gCurrentPatternNumber);
+            LOG_DEBUG("[GENE] gCurrentPatternNumber = %i\n", gCurrentPatternNumber);
             lastgCurrentPatternNumber = gCurrentPatternNumber;
         }
     }
     // gCurrentPatternNumber = 5;
     // gCurrentPatternNumber = 4;
     // LOG_DEBUG("[GENE] gCurrentPatternNumber = %i\n", gCurrentPatternNumber);
+    // gCurrentPatternNumber = 0;
     if (gCurrentPatternNumber == 5)
     {
         FastLED.setBrightness(100);
@@ -988,7 +990,7 @@ int32_t loop_gene()
         counter += speed2;
         the_intensity_const = 3;
         current_led = counter / 100;
-        // gHue = 255 * (-getTime_ms() % (10000)) / (10000);
+        // gHue = 255 * (-getTime() % (10000)) / (10000);
         if (counter == 1)
         {
             speed2 = 100;
@@ -1022,20 +1024,24 @@ int32_t loop_gene()
         {
             counter = 0;
             speed2 = 100;
-            gHue = 255 * (getTime_ms() % (10000)) / (10000);
+            gHue = 255 * (getTime() % (10000)) / (10000);
             LOG_DEBUG("[GENE] gHue = %i\n", gHue);
         }
     }
     if (gCurrentPatternNumber == 0)
     {
         FastLED.setBrightness(30);
-        gHue = 255 * (-getTime_ms() % (1000 / the_intensity_const)) / (1000 / the_intensity_const);
+        // gHue = 255 * (-getTime() % (1000)) / 1000;
+        // LOG_DEBUG("[GENE] getTime() = %i\n", -getTime());
+        // LOG_DEBUG("[GENE] (getTime() % (1000)) = %i\n", (-getTime() % (1000)));
+        // LOG_DEBUG("[GENE] gHue = %i\n", gHue);
+        gHue = 255 * (getTime_ms() % (1000 / the_intensity_const)) / (1000 / the_intensity_const);
         fill_rainbow(leds, NUM_LEDS, gHue, 7);
     }
     if (gCurrentPatternNumber == 1)
     {
         the_intensity_const = 3;
-        gHue = 255 * (-getTime_ms() % (1000 / the_intensity_const)) / (1000 / the_intensity_const);
+        gHue = 255 * (getTime_ms() % (1000 / the_intensity_const)) / (1000 / the_intensity_const);
         FastLED.setBrightness(30);
         rainbow();
         // addGlitter(80);
@@ -1045,7 +1051,7 @@ int32_t loop_gene()
     {
         FastLED.setBrightness(100);
         the_intensity_const = 3;
-        gHue = 255 * (-getTime_ms() % (10000)) / (10000);
+        gHue = 255 * (-getTime() % (10000)) / (10000);
         fadeToBlackBy(leds, NUM_LEDS, 10 * the_intensity_const);
         for (size_t i = 0; i < the_intensity_const; i++)
         {
@@ -1059,7 +1065,7 @@ int32_t loop_gene()
         // uint8_t BeatsPerMinute = 62;
         the_intensity_const = 1;
         uint8_t BeatsPerMinute = the_intensity_const * 30;
-        int the_palette = 4 * (-getTime_ms() % (30000)) / (30000);
+        int the_palette = 4 * (-getTime() % (30000)) / (30000);
         CRGBPalette16 palettes[5] = {CloudColors_p, LavaColors_p, OceanColors_p, ForestColors_p};
         CRGBPalette16 palette = palettes[the_palette];
         uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
@@ -1085,10 +1091,10 @@ int32_t loop_gene()
     //     // insert a delay to keep the framerate modest
     //     // FastLED.delay(1000/FRAMES_PER_SECOND);
     //     // do some periodic updates
-    //     // int32_t time_ms = getTime_ms();
+    //     // int32_t time_ms = getTime();
     //     the_intensity_const = 4;
     //     // 1 is low, 5 is high
-    //     gHue = 255 * (-getTime_ms() % (1000/the_intensity_const)) / (1000/the_intensity_const);
+    //     gHue = 255 * (-getTime() % (1000/the_intensity_const)) / (1000/the_intensity_const);
     //     // EVERY_N_MILLISECONDS(20)
     //     // {
     //     //     gHue++;
@@ -1113,7 +1119,7 @@ int32_t rainbow_gene(uint8_t wait)
     //     // speed = 50;
     //     counter = 0;
     // }
-    int32_t time_ms = getTime_ms();
+    int32_t time_ms = getTime();
     // LOG_DEBUG("[GENE] time_ms = %i\n", time_ms);
     j = 255 * (-time_ms % 5000) / (5000);
     speed = speed - (speed - 3) / 20; // 20 is fast
